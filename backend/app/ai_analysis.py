@@ -38,6 +38,11 @@ _REPORT_SYSTEM_PROMPT = """You are a technical report writer. Generate a clear, 
 Make it sound like a human expert wrote it, not a template."""
 
 
+def _sanitize_text(text: str) -> str:
+    """Replace Unicode line separators and other problematic chars with plain newline."""
+    return text.replace("\u2028", "\n").replace("\u2029", "\n")
+
+
 async def _call_openrouter(
     system_prompt: str,
     user_message: str,
@@ -48,6 +53,10 @@ async def _call_openrouter(
     key = api_key or OPENROUTER_API_KEY
     if not key or not key.strip():
         return json.dumps({"error": "No OpenRouter API key provided. Enter your key in the AI Enhancement panel or set OPENROUTER_API_KEY."})
+
+    # Sanitize inputs to prevent Unicode encoding issues in Lambda environments
+    system_prompt = _sanitize_text(system_prompt)
+    user_message = _sanitize_text(user_message)
 
     headers = {
         "Authorization": f"Bearer {key}",
@@ -86,7 +95,7 @@ async def _call_openrouter(
                 err_text = e.response.text[:500]
                 detail += f" - {err_text}"
             return json.dumps({"error": detail})
-        except (httpx.RequestError, json.JSONDecodeError, KeyError, IndexError) as e:
+        except (httpx.RequestError, json.JSONDecodeError, KeyError, IndexError, UnicodeEncodeError) as e:
             return json.dumps({"error": f"API request failed: {type(e).__name__}: {e}"})
 
 

@@ -102,7 +102,7 @@ export default function ResultsPanel({
           Word count: {result.word_count || "N/A"}
         </p>
 
-        {aiApiKey && !hasAiAnalysis && !aiLoading && (
+        {!hasAiAnalysis && !aiLoading && (
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             <button className="btn btn-accent btn-sm" onClick={runAiAnalysis}>
               Run DeepSeek Analysis
@@ -110,7 +110,7 @@ export default function ResultsPanel({
           </div>
         )}
 
-        {aiApiKey && hasAiAnalysis && !aiReport && !aiLoading && (
+        {hasAiAnalysis && !aiReport && !aiLoading && (
           <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
             <button className="btn btn-accent btn-sm" onClick={runAiReport}>
               Generate AI-Powered Report

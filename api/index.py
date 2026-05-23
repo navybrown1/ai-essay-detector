@@ -1,6 +1,9 @@
 import sys
 import os
 
+# Force UTF-8 encoding for stdout/stderr on Lambda (prevents ASCII codec errors)
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
 # NLTK must download data to /tmp on Lambda's read-only filesystem
 os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
