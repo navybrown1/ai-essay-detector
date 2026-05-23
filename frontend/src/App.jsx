@@ -3,13 +3,28 @@ import Dashboard from "./components/Dashboard";
 import InputPanel from "./components/InputPanel";
 import ResultsPanel from "./components/ResultsPanel";
 import HistoryPanel from "./components/HistoryPanel";
+import ColdStartGuard from "./components/ColdStartGuard";
 import { analyzeText, analyzeFile, getHistory, getScan } from "./utils/api";
+
+function safeGet(key, fallback = "") {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function safeSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* ignore quota/restriction errors */
+  }
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("analyze");
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("theme") || "light";
-  });
+  const [theme, setTheme] = useState(() => safeGet("theme", "light"));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -17,27 +32,25 @@ export default function App() {
   const [currentScanId, setCurrentScanId] = useState(null);
 
   const [showAiSettings, setShowAiSettings] = useState(() => {
-    return localStorage.getItem("showAiSettings") === "true" || false;
+    return safeGet("showAiSettings") === "true";
   });
-  const [aiApiKey, setAiApiKey] = useState(() => {
-    return localStorage.getItem("openrouterApiKey") || "";
-  });
+  const [aiApiKey, setAiApiKey] = useState(() => safeGet("openrouterApiKey", ""));
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiImprovements, setAiImprovements] = useState(null);
   const [aiReport, setAiReport] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("showAiSettings", showAiSettings);
+    safeSet("showAiSettings", showAiSettings);
   }, [showAiSettings]);
 
   useEffect(() => {
-    localStorage.setItem("openrouterApiKey", aiApiKey);
+    safeSet("openrouterApiKey", aiApiKey);
   }, [aiApiKey]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
+    safeSet("theme", theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
@@ -125,6 +138,7 @@ export default function App() {
   };
 
   return (
+    <ColdStartGuard>
     <div className="app-container">
       <header className="app-header">
         <h1>
@@ -203,5 +217,6 @@ export default function App() {
         />
       )}
     </div>
+    </ColdStartGuard>
   );
 }

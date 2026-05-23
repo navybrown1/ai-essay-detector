@@ -2,7 +2,7 @@ import os
 import json
 import datetime
 import hashlib
-from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -64,17 +64,16 @@ def get_db():
         db.close()
 
 
-@app.get("/health")
+# All API routes are defined under /api/ prefix
+api_router = APIRouter()
+
+
+@api_router.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.datetime.utcnow().isoformat()}
 
 
-@app.get("/api/health")
-def api_health():
-    return {"status": "ok", "timestamp": datetime.datetime.utcnow().isoformat()}
-
-
-@app.post("/analyze", response_model=ScanResponse)
+@api_router.post("/analyze", response_model=ScanResponse)
 def analyze_essay(
     text: str = Form(""),
     title: str = Form("Untitled"),
@@ -130,7 +129,7 @@ def analyze_essay(
     )
 
 
-@app.get("/history", response_model=list[HistoryItem])
+@api_router.get("/history", response_model=list[HistoryItem])
 def history(limit: int = 20, db: Session = Depends(get_db)):
     scans = get_recent_scans(db, limit)
     return [
@@ -149,7 +148,7 @@ def history(limit: int = 20, db: Session = Depends(get_db)):
     ]
 
 
-@app.get("/scan/{scan_id}", response_model=ScanResponse)
+@api_router.get("/scan/{scan_id}", response_model=ScanResponse)
 def get_scan_result(scan_id: int, db: Session = Depends(get_db)):
     record = get_scan(db, scan_id)
     if not record:
@@ -170,14 +169,14 @@ def get_scan_result(scan_id: int, db: Session = Depends(get_db)):
     )
 
 
-@app.delete("/scan/{scan_id}")
+@api_router.delete("/scan/{scan_id}")
 def delete_scan_result(scan_id: int, db: Session = Depends(get_db)):
     if not delete_scan(db, scan_id):
         raise HTTPException(404, "Scan not found.")
     return {"ok": True}
 
 
-@app.get("/author/{author_id}")
+@api_router.get("/author/{author_id}")
 def get_author_scans(author_id: str, db: Session = Depends(get_db)):
     scans = get_scans_by_author(db, author_id)
     return [
@@ -196,7 +195,7 @@ def get_author_scans(author_id: str, db: Session = Depends(get_db)):
     ]
 
 
-@app.get("/compare")
+@api_router.get("/compare")
 def compare_scans(ids: str, db: Session = Depends(get_db)):
     id_list = [int(x) for x in ids.split(",") if x.strip().isdigit()]
     if len(id_list) < 2:
@@ -224,7 +223,7 @@ def compare_scans(ids: str, db: Session = Depends(get_db)):
     }
 
 
-@app.post("/ai-analyze", response_model=AIAnalysisResponse)
+@api_router.post("/ai-analyze", response_model=AIAnalysisResponse)
 async def ai_analyze(req: AIAnalysisRequest):
     text = req.text.strip()
     if len(text) < 50:
@@ -238,7 +237,7 @@ async def ai_analyze(req: AIAnalysisRequest):
         return AIAnalysisResponse(error=f"Analysis failed: {type(e).__name__}: {e}")
 
 
-@app.post("/ai-improve", response_model=AIImprovementResponse)
+@api_router.post("/ai-improve", response_model=AIImprovementResponse)
 async def ai_improve(req: AIImprovementRequest):
     text = req.text.strip()
     if not text:
@@ -269,7 +268,7 @@ async def ai_improve(req: AIImprovementRequest):
         return AIImprovementResponse(error=f"Improvement failed: {type(e).__name__}: {e}")
 
 
-@app.post("/ai-report/{scan_id}")
+@api_router.post("/ai-report/{scan_id}")
 async def ai_download_report(scan_id: int, req: AIReportRequest, db: Session = Depends(get_db)):
     record = get_scan(db, scan_id)
     if not record:
@@ -292,7 +291,7 @@ async def ai_download_report(scan_id: int, req: AIReportRequest, db: Session = D
         return {"report": f"Report generation failed: {type(e).__name__}: {e}"}
 
 
-@app.get("/report/{scan_id}")
+@api_router.get("/report/{scan_id}")
 def download_report(scan_id: int, db: Session = Depends(get_db)):
     record = get_scan(db, scan_id)
     if not record or not record.full_report:
@@ -319,16 +318,5 @@ def download_report(scan_id: int, db: Session = Depends(get_db)):
     )
 
 
-# Also register /api/ prefixed versions for Vercel routing
-for route in list(app.routes):
-    if hasattr(route, "path") and not route.path.startswith("/api/"):
-        api_path = "/api" + route.path
-        for method in route.methods or []:
-            if method == "GET":
-                app.get(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
-            elif method == "POST":
-                app.post(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
-            elif method == "DELETE":
-                app.delete(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
-            elif method == "PUT":
-                app.put(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
+# Mount the API router under /api/ prefix
+app.include_router(api_router, prefix="/api")
