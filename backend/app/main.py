@@ -32,6 +32,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"{type(exc).__name__}: {exc}",
+            "traceback": traceback.format_exc(),
+        },
+    )
+
 _SessionLocal = None
 analyzer = EssayAnalyzer()
 
