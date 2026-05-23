@@ -56,6 +56,11 @@ def health():
     return {"status": "ok", "timestamp": datetime.datetime.utcnow().isoformat()}
 
 
+@app.get("/{path:path}")
+def debug_catchall(path: str, request):
+    return {"detail": "Not Found", "received_path": "/" + path, "url": str(request.url)}
+
+
 @app.post("/analyze", response_model=ScanResponse)
 def analyze_essay(
     text: str = Form(""),
