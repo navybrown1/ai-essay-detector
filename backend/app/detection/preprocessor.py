@@ -8,16 +8,21 @@ def clean_text(text: str) -> str:
     return text
 
 
+_NLTK_DATA_DIR = "/tmp/nltk_data"
+
 def segment_sentences(text: str) -> list[str]:
     import nltk
+    import os
+    os.makedirs(_NLTK_DATA_DIR, exist_ok=True)
+    nltk.data.path.insert(0, _NLTK_DATA_DIR)
     try:
-        nltk.data.find("tokenizers/punkt_tab")
+        nltk.data.find("tokenizers/punkt_tab", paths=[_NLTK_DATA_DIR])
     except LookupError:
-        nltk.download("punkt_tab", quiet=True)
+        nltk.download("punkt_tab", quiet=True, download_dir=_NLTK_DATA_DIR)
     try:
-        nltk.data.find("tokenizers/punkt")
+        nltk.data.find("tokenizers/punkt", paths=[_NLTK_DATA_DIR])
     except LookupError:
-        nltk.download("punkt", quiet=True)
+        nltk.download("punkt", quiet=True, download_dir=_NLTK_DATA_DIR)
     return nltk.sent_tokenize(text)
 
 
