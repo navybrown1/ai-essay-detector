@@ -85,12 +85,20 @@ async def _call_openrouter(
     if response_format:
         body["response_format"] = response_format
 
+    # Explicitly serialize JSON with ASCII-safe escaping to avoid Lambda encoding issues
+    try:
+        body_bytes = json.dumps(body, ensure_ascii=True).encode("utf-8")
+    except Exception as e:
+        return json.dumps({"error": f"JSON serialization failed: {type(e).__name__}: {e}"})
+
+    headers["Content-Type"] = "application/json; charset=utf-8"
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         try:
             resp = await client.post(
                 f"{OPENROUTER_BASE_URL}/chat/completions",
                 headers=headers,
-                json=body,
+                content=body_bytes,
             )
             resp.raise_for_status()
             data = resp.json()
