@@ -50,13 +50,21 @@ async def _call_openrouter(
     response_format: Optional[dict] = None,
     api_key: Optional[str] = None,
 ) -> str:
-    key = api_key or OPENROUTER_API_KEY
-    if not key or not key.strip():
+    key = (api_key or OPENROUTER_API_KEY or "").strip()
+    if not key:
         return json.dumps({"error": "No OpenRouter API key provided. Enter your key in the AI Enhancement panel or set OPENROUTER_API_KEY."})
 
-    # Sanitize inputs to prevent Unicode encoding issues in Lambda environments
+    # Aggressively sanitize ALL text to prevent Unicode encoding issues in Lambda
+    key = _sanitize_text(key)
     system_prompt = _sanitize_text(system_prompt)
     user_message = _sanitize_text(user_message)
+
+    # httpx may enforce ISO-8859-1 for headers; ensure the key is safe
+    try:
+        key.encode("iso-8859-1")
+    except UnicodeEncodeError:
+        # If key contains chars outside ISO-8859-1, force UTF-8 encoding for header
+        key = key.encode("utf-8").decode("utf-8")
 
     headers = {
         "Authorization": f"Bearer {key}",
@@ -96,7 +104,8 @@ async def _call_openrouter(
                 detail += f" - {err_text}"
             return json.dumps({"error": detail})
         except (httpx.RequestError, json.JSONDecodeError, KeyError, IndexError, UnicodeEncodeError) as e:
-            return json.dumps({"error": f"API request failed: {type(e).__name__}: {e}"})
+            import traceback
+            return json.dumps({"error": f"API request failed: {type(e).__name__}: {e}", "traceback": traceback.format_exc()})
 
 
 async def second_opinion(text: str, word_count: int, api_key: Optional[str] = None) -> dict:
