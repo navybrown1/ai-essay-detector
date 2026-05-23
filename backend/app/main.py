@@ -2,7 +2,7 @@ import os
 import json
 import datetime
 import hashlib
-from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -56,9 +56,9 @@ def health():
     return {"status": "ok", "timestamp": datetime.datetime.utcnow().isoformat()}
 
 
-@app.get("/{path:path}")
-def debug_catchall(path: str, request):
-    return {"detail": "Not Found", "received_path": "/" + path, "url": str(request.url)}
+@app.get("/api/health")
+def api_health():
+    return {"status": "ok", "timestamp": datetime.datetime.utcnow().isoformat()}
 
 
 @app.post("/analyze", response_model=ScanResponse)
@@ -304,3 +304,18 @@ def download_report(scan_id: int, db: Session = Depends(get_db)):
             "Content-Disposition": f'attachment; filename="essay_report_{scan_id}.pdf"'
         },
     )
+
+
+# Also register /api/ prefixed versions for Vercel routing
+for route in list(app.routes):
+    if hasattr(route, "path") and not route.path.startswith("/api/"):
+        api_path = "/api" + route.path
+        for method in route.methods or []:
+            if method == "GET":
+                app.get(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
+            elif method == "POST":
+                app.post(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
+            elif method == "DELETE":
+                app.delete(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
+            elif method == "PUT":
+                app.put(api_path, response_model=getattr(route, "response_model", None))(route.endpoint)
