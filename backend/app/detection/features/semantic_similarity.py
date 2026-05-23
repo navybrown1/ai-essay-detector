@@ -1,8 +1,8 @@
 from ..preprocessor import segment_paragraphs, segment_sentences
-import numpy as np
 
 
 def analyze_semantic_similarity(text: str) -> dict:
+    import numpy as np
     paragraphs = segment_paragraphs(text)
     if len(paragraphs) < 2:
         return {

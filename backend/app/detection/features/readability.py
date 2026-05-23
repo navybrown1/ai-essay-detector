@@ -1,8 +1,8 @@
-import textstat
 from ..preprocessor import segment_sentences, tokenize_words, count_syllables
 
 
 def compute_readability_scores(text: str) -> dict:
+    import textstat
     sentences = segment_sentences(text)
     words = tokenize_words(text)
 

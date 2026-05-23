@@ -1,13 +1,5 @@
 import io
 import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    HRFlowable,
-)
 from .preprocessor import segment_paragraphs, segment_sentences
 
 
@@ -21,6 +13,15 @@ def generate_pdf_report(
     highlighted_sections: list,
     summary: str,
 ) -> bytes:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+        HRFlowable,
+    )
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter,
                             topMargin=0.75*inch, bottomMargin=0.75*inch)
