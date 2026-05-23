@@ -32,12 +32,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SessionLocal = init_db(DATABASE_URL)
+_SessionLocal = None
 analyzer = EssayAnalyzer()
 
 
+def _get_session_local():
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = init_db(DATABASE_URL)
+    return _SessionLocal
+
+
 def get_db():
-    db = SessionLocal()
+    db = _get_session_local()()
     try:
         yield db
     finally:

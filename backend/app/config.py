@@ -1,6 +1,6 @@
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///essay_detector.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/essay_detector.db")
 
 MODEL_CACHE_DIR = os.getenv("MODEL_CACHE_DIR", "/tmp/essay_models")
 
